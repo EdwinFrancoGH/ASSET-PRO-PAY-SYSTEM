@@ -1,0 +1,5 @@
+# Fuerza LF en todo el repo. Uno de los problemas que causó el colapso del
+# merge anterior fue que una rama guardaba archivos con CRLF (Windows) y la
+# otra con LF: Git marcaba como "cambiada" casi cada línea de los archivos
+# compartidos aunque el contenido real casi no hubiera cambiado.
+* text=auto eol=lf
