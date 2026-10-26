@@ -9,10 +9,10 @@ import { alertaError, confirmar } from "../ui/alertas";
 
 const icono = (tipo = "") => {
     if (tipo.includes("pdf")) return <FaFilePdf className="text-red-500" />;
-    if (tipo.startsWith("image/")) return <FaFileImage className="text-sky-500" />;
-    if (tipo.includes("sheet") || tipo.includes("excel")) return <FaFileExcel className="text-emerald-600" />;
-    if (tipo.includes("word")) return <FaFileWord className="text-blue-600" />;
-    return <FaFileAlt className="text-slate-500" />;
+    if (tipo.startsWith("image/")) return <FaFileImage className="text-sky-400" />;
+    if (tipo.includes("sheet") || tipo.includes("excel")) return <FaFileExcel className="text-emerald-400" />;
+    if (tipo.includes("word")) return <FaFileWord className="text-blue-400" />;
+    return <FaFileAlt className="text-slate-400" />;
 };
 
 const sePuedeVer = (tipo = "") => tipo.includes("pdf") || tipo.startsWith("image/");
@@ -38,28 +38,28 @@ export default function AdjuntosLista({ peticionId, adjuntos, onEliminar }) {
         }
     };
 
-    if (!adjuntos?.length) return <p className="text-sm text-slate-500">Sin archivos.</p>;
+    if (!adjuntos?.length) return <p className="text-sm text-slate-400">Sin archivos.</p>;
 
     return (
-        <ul className="divide-y rounded-xl border border-slate-200">
+        <ul className="divide-y rounded-xl border border-white/10">
             {adjuntos.map((a) => (
                 <li key={a.id} className="flex items-center gap-3 px-4 py-3">
                     <span className="text-2xl">{icono(a.tipo)}</span>
                     <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-slate-800">{a.nombre}</p>
-                        <p className="text-xs text-slate-500">{formatoTamano(a.tamano)}, {a.subidoPorNombre}, {formatoFechaHora(a.fecha)}</p>
+                        <p className="truncate font-medium text-slate-100">{a.nombre}</p>
+                        <p className="text-xs text-slate-400">{formatoTamano(a.tamano)}, {a.subidoPorNombre}, {formatoFechaHora(a.fecha)}</p>
                     </div>
                     <div className="flex gap-1">
                         {sePuedeVer(a.tipo) && (
-                            <button type="button" onClick={() => obtener(a, "ver")} disabled={ocupado === a.id} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100" aria-label={`Ver ${a.nombre}`} title="Ver">
+                            <button type="button" onClick={() => obtener(a, "ver")} disabled={ocupado === a.id} className="rounded-lg p-2 text-slate-300 hover:bg-white/10" aria-label={`Ver ${a.nombre}`} title="Ver">
                                 <FaEye />
                             </button>
                         )}
-                        <button type="button" onClick={() => obtener(a, "descargar")} disabled={ocupado === a.id} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100" aria-label={`Descargar ${a.nombre}`} title="Descargar">
+                        <button type="button" onClick={() => obtener(a, "descargar")} disabled={ocupado === a.id} className="rounded-lg p-2 text-slate-300 hover:bg-white/10" aria-label={`Descargar ${a.nombre}`} title="Descargar">
                             <FaDownload />
                         </button>
                         {onEliminar && (
-                            <button type="button" onClick={() => eliminar(a)} className="rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-red-600" aria-label={`Quitar ${a.nombre}`} title="Quitar">
+                            <button type="button" onClick={() => eliminar(a)} className="rounded-lg p-2 text-slate-400 hover:bg-red-500/15 hover:text-red-400" aria-label={`Quitar ${a.nombre}`} title="Quitar">
                                 <FaTrash />
                             </button>
                         )}

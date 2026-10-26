@@ -1,5 +1,9 @@
 import { auth, db } from "../config/firebase.js";
 import { LISTA_ROLES, ROLES } from "../config/roles.js";
+
+// El jefe aprueba la caja chica según el área: el solicitante debe tenerla.
+const faltaAreaCajaChica = (role, areaId) => role === ROLES.SOLICITANTE_CC && !areaId;
+const MSJ_AREA_CC = "El Solicitante caja chica debe tener un área asignada.";
 import { manejar } from "../utils/errores.js";
 
 const limpiar = (uid, datos) => ({
@@ -46,6 +50,9 @@ export const createUser = manejar(async (req, res) => {
     if (password.length < 6) {
         return res.status(400).json({ ok: false, message: "La contraseña debe tener al menos 6 caracteres." });
     }
+    if (faltaAreaCajaChica(role, areaId)) {
+        return res.status(400).json({ ok: false, message: MSJ_AREA_CC });
+    }
 
     try {
         const userRecord = await auth.createUser({ email, password, displayName: name });
@@ -80,6 +87,9 @@ export const updateUser = manejar(async (req, res) => {
     }
     if (!LISTA_ROLES.includes(role)) {
         return res.status(400).json({ ok: false, message: "Rol inválido." });
+    }
+    if (faltaAreaCajaChica(role, areaId)) {
+        return res.status(400).json({ ok: false, message: MSJ_AREA_CC });
     }
     if (req.usuario.uid === uid && (role !== ROLES.ADMIN || activo === false)) {
         return res.status(403).json({ ok: false, message: "No puedes quitarte el rol de Administrador ni desactivarte a ti mismo." });

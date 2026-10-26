@@ -20,7 +20,8 @@ export default function NotificacionesPage() {
     const abrir = async (n) => {
         if (!n.leida) await marcarLeida(n.id).catch(() => {});
         refrescarNotificaciones();
-        if (n.peticionId) router.push(`/peticiones/${n.peticionId}`);
+        if (n.enlace) router.push(n.enlace);
+        else if (n.peticionId) router.push(`/peticiones/${n.peticionId}`);
         else cargar();
     };
 
@@ -40,23 +41,23 @@ export default function NotificacionesPage() {
                 )}
             </EncabezadoPagina>
 
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div className="bg-slate-800/35 backdrop-blur-xl ring-1 ring-white/15 rounded-2xl shadow-lg overflow-hidden">
                 {datos === null ? (
                     <Cargando />
                 ) : datos.notificaciones.length === 0 ? (
-                    <p className="p-10 text-center text-slate-500">No tienes notificaciones.</p>
+                    <p className="p-10 text-center text-slate-400">No tienes notificaciones.</p>
                 ) : (
                     <ul className="divide-y">
                         {datos.notificaciones.map((n) => (
                             <li key={n.id}>
-                                <button onClick={() => abrir(n)} className={`flex w-full gap-4 px-8 py-5 text-left hover:bg-slate-50 ${n.leida ? "" : "bg-blue-50/60"}`}>
-                                    <span className={`mt-2 h-2.5 w-2.5 flex-none rounded-full ${n.leida ? "bg-slate-200" : "bg-blue-600"}`} />
+                                <button onClick={() => abrir(n)} className={`flex w-full gap-4 px-8 py-5 text-left hover:bg-white/5 ${n.leida ? "" : "bg-blue-500/10"}`}>
+                                    <span className={`mt-2 h-2.5 w-2.5 flex-none rounded-full ${n.leida ? "bg-white/15" : "bg-blue-600"}`} />
                                     <span className="min-w-0 flex-1">
                                         <span className="flex flex-wrap items-baseline justify-between gap-2">
-                                            <span className="font-semibold text-slate-800">{n.titulo}</span>
+                                            <span className="font-semibold text-slate-100">{n.titulo}</span>
                                             <span className="text-xs text-slate-400">{formatoFechaHora(n.fecha)}</span>
                                         </span>
-                                        <span className="mt-1 block text-slate-600">{n.mensaje}</span>
+                                        <span className="mt-1 block text-slate-300">{n.mensaje}</span>
                                     </span>
                                 </button>
                             </li>

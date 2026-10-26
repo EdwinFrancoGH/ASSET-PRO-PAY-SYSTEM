@@ -78,18 +78,18 @@ function Usuarios() {
     return (
         <>
             <EncabezadoPagina titulo="Usuarios" descripcion="Crea cuentas y asigna el rol de cada persona.">
-                <button onClick={() => setEdicion({ ...vacio })} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white shadow-lg hover:bg-blue-700">
+                <button onClick={() => setEdicion({ ...vacio })} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 px-6 py-3 font-semibold text-white shadow-lg shadow-blue-900/50 transition hover:from-blue-400 hover:to-blue-600">
                     <FaPlus /> Nuevo usuario
                 </button>
             </EncabezadoPagina>
 
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div className="bg-slate-800/35 backdrop-blur-xl ring-1 ring-white/15 rounded-2xl shadow-lg overflow-hidden">
                 {usuarios === null ? (
                     <Cargando />
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
-                            <thead className="bg-slate-50 text-left text-slate-600">
+                            <thead className="bg-white/5 text-left text-slate-300">
                                 <tr>
                                     <th className="px-6 py-4 font-semibold">Nombre</th>
                                     <th className="px-6 py-4 font-semibold">Correo</th>
@@ -99,22 +99,22 @@ function Usuarios() {
                                     <th className="px-6 py-4"><span className="sr-only">Acciones</span></th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-white/10">
                                 {usuarios.map((u) => (
-                                    <tr key={u.uid} className="hover:bg-slate-50">
-                                        <td className="px-6 py-4 font-medium text-slate-900">{u.name}</td>
-                                        <td className="px-6 py-4 text-slate-600">{u.email}</td>
-                                        <td className="px-6 py-4 text-slate-700">{u.role}</td>
-                                        <td className="px-6 py-4 text-slate-600">{nombreArea(u.areaId)}</td>
+                                    <tr key={u.uid} className="hover:bg-white/5">
+                                        <td className="px-6 py-4 font-medium text-white">{u.name}</td>
+                                        <td className="px-6 py-4 text-slate-300">{u.email}</td>
+                                        <td className="px-6 py-4 text-slate-200">{u.role}</td>
+                                        <td className="px-6 py-4 text-slate-300">{nombreArea(u.areaId)}</td>
                                         <td className="px-6 py-4">
-                                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${u.activo ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${u.activo ? "bg-emerald-500/15 text-emerald-300" : "bg-white/10 text-slate-400"}`}>
                                                 {u.activo ? "Activo" : "Inactivo"}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right whitespace-nowrap">
-                                            <button onClick={() => setEdicion({ ...vacio, ...u, areaId: u.areaId || "", password: "" })} className="rounded-lg px-3 py-1.5 font-medium text-blue-700 hover:bg-blue-50">Editar</button>
+                                            <button onClick={() => setEdicion({ ...vacio, ...u, areaId: u.areaId || "", password: "" })} className="rounded-lg px-3 py-1.5 font-medium text-blue-300 hover:bg-blue-500/10">Editar</button>
                                             {u.uid !== userData.uid && (
-                                                <button onClick={() => eliminar(u)} className="rounded-lg px-3 py-1.5 font-medium text-red-600 hover:bg-red-50">Eliminar</button>
+                                                <button onClick={() => eliminar(u)} className="rounded-lg px-3 py-1.5 font-medium text-red-400 hover:bg-red-500/15">Eliminar</button>
                                             )}
                                         </td>
                                     </tr>
@@ -142,14 +142,14 @@ function Usuarios() {
                                 {LISTA_ROLES.map((r) => <option key={r}>{r}</option>)}
                             </select>
                         </Campo>
-                        <Campo etiqueta="Área" htmlFor="area">
-                            <select id="area" value={edicion.areaId} onChange={(e) => setEdicion({ ...edicion, areaId: e.target.value })} className={claseInput}>
+                        <Campo etiqueta="Área" htmlFor="area" requerido={edicion.role === ROLES.SOLICITANTE_CC}>
+                            <select id="area" required={edicion.role === ROLES.SOLICITANTE_CC} value={edicion.areaId} onChange={(e) => setEdicion({ ...edicion, areaId: e.target.value })} className={claseInput}>
                                 <option value="">Sin área</option>
                                 {areas.map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
                             </select>
                         </Campo>
                         {edicion.uid && edicion.uid !== userData.uid && (
-                            <label className="flex items-center gap-3 text-slate-700">
+                            <label className="flex items-center gap-3 text-slate-200">
                                 <input type="checkbox" checked={edicion.activo} onChange={(e) => setEdicion({ ...edicion, activo: e.target.checked })} className="h-4 w-4" />
                                 Activo (puede iniciar sesión)
                             </label>

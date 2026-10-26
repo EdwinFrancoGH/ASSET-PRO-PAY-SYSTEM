@@ -33,9 +33,9 @@ export default function EditarPeticionPage() {
 
     if (error) {
         return (
-            <div className="rounded-2xl bg-white p-10 text-center shadow-lg">
-                <p className="text-slate-700">{error}</p>
-                <Link href={`/peticiones/${id}`} className="mt-4 inline-block text-blue-600 hover:underline">Ver la petición</Link>
+            <div className="rounded-2xl bg-slate-800/35 backdrop-blur-xl ring-1 ring-white/15 p-10 text-center shadow-lg">
+                <p className="text-slate-200">{error}</p>
+                <Link href={`/peticiones/${id}`} className="mt-4 inline-block text-blue-400 hover:underline">Ver la petición</Link>
             </div>
         );
     }

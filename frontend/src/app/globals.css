@@ -35,3 +35,281 @@ body {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
 }
+
+/* ============================================================
+   Pantallas de acceso (login / recuperar contraseña)
+   Tema nocturno azul. Si se coloca una foto en
+   public/images/login-bg.jpg se usa como fondo; si no existe,
+   se muestra solo el degradado.
+   ============================================================ */
+.auth-fondo {
+  background-color: #070d1f;
+  background-image:
+    linear-gradient(180deg, rgba(7, 13, 31, 0.55) 0%, rgba(7, 13, 31, 0.35) 45%, rgba(7, 13, 31, 0.8) 100%),
+    url("/images/login-bg.jpg"),
+    radial-gradient(ellipse at 20% 30%, rgba(59, 130, 246, 0.22) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 70%, rgba(37, 99, 235, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 100%, rgba(30, 64, 175, 0.35) 0%, transparent 60%),
+    linear-gradient(160deg, #0b1633 0%, #0a1128 50%, #050914 100%);
+  background-size: cover;
+  background-position: center;
+}
+
+/* Área de trabajo con el estilo del login (más oscurecida para leer mejor).
+   background-attachment: fixed deja el fondo quieto al hacer scroll. */
+.app-fondo {
+  background-color: #070d1f;
+  background-image:
+    linear-gradient(180deg, rgba(7, 13, 31, 0.78) 0%, rgba(7, 13, 31, 0.7) 50%, rgba(7, 13, 31, 0.88) 100%),
+    url("/images/login-bg.jpg"),
+    radial-gradient(ellipse at 20% 30%, rgba(59, 130, 246, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 70%, rgba(37, 99, 235, 0.15) 0%, transparent 55%),
+    linear-gradient(160deg, #0b1633 0%, #0a1128 50%, #050914 100%);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* Luces tipo luciérnaga */
+.luciernaga {
+  position: absolute;
+  border-radius: 9999px;
+  background: #60a5fa;
+  box-shadow: 0 0 10px 3px rgba(96, 165, 250, 0.75), 0 0 24px 8px rgba(37, 99, 235, 0.35);
+  opacity: 0;
+  animation-name: luciernaga;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
+
+@keyframes luciernaga {
+  0%   { opacity: 0;   transform: translate(0, 0) scale(0.8); }
+  25%  { opacity: 0.9; }
+  50%  { opacity: 0.5; transform: translate(14px, -18px) scale(1); }
+  75%  { opacity: 0.9; }
+  100% { opacity: 0;   transform: translate(-8px, -34px) scale(0.8); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .luciernaga { animation: none; opacity: 0.6; }
+}
+
+/* Autocompletado del navegador sin fondo amarillo/blanco en tema oscuro */
+.input-auth:-webkit-autofill,
+.input-auth:-webkit-autofill:hover,
+.input-auth:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f1f5f9;
+  caret-color: #f1f5f9;
+  -webkit-box-shadow: 0 0 0 1000px transparent inset;
+  transition: background-color 9999s ease-out 0s;
+}
+
+/* ============================================================
+   Tema nocturno del sistema (área privada)
+   ============================================================ */
+/* Controles nativos (calendario, listas desplegables, barras de
+   desplazamiento) en modo oscuro */
+.tema-nocturno,
+.auth-fondo {
+  color-scheme: dark;
+}
+
+/* Bordes por defecto (border, border-b, divide-y) en blanco translúcido.
+   En @layer base para que los colores de borde de Tailwind sigan mandando. */
+@layer base {
+  .tema-nocturno *,
+  .tema-nocturno ::after,
+  .tema-nocturno ::before {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Opciones de las listas desplegables */
+.tema-nocturno select option {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+/* Casillas de verificación en azul */
+.tema-nocturno input[type="checkbox"] {
+  accent-color: #2563eb;
+}
+
+/* Ventanas de SweetAlert (confirmaciones y errores) en tema oscuro */
+.swal2-popup {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 1.5rem !important;
+}
+.swal2-title {
+  color: #ffffff !important;
+}
+.swal2-html-container {
+  color: #cbd5e1 !important;
+}
+.swal2-toast {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+}
+.swal2-container.swal2-backdrop-show {
+  background: rgba(2, 6, 23, 0.7) !important;
+}
+
+/* ============================================================
+   MODO CLARO (modo día)
+   Se activa con la clase "tema-claro" en <html> (InterruptorTema).
+   No cambia ninguna pantalla por dentro: reasigna los colores de
+   Tailwind dentro del área privada (.tema-nocturno), así que todo
+   lo que hoy es claro-sobre-oscuro pasa a oscuro-sobre-claro.
+   El login y la recuperación de contraseña siguen en modo noche.
+   ============================================================ */
+.tema-claro .tema-nocturno {
+  color-scheme: light;
+
+  /* Texto blanco y vidrios blancos → tinta oscura */
+  --color-white: #0f172a;
+  --color-black: #94a3b8; /* sombras más suaves */
+
+  /* Grises de texto: de claros a oscuros */
+  --color-slate-100: #0f172a;
+  --color-slate-200: #1e293b;
+  --color-slate-300: #334155;
+  --color-slate-400: #64748b;
+  --color-slate-500: #64748b;
+
+  /* Tonos claros de color (pensados para fondo oscuro) → tonos fuertes */
+  --color-blue-100: #1e3a8a;
+  --color-blue-200: #1e40af;
+  --color-blue-300: #1d4ed8;
+  --color-blue-400: #2563eb;
+  --color-sky-100: #075985;
+  --color-sky-200: #075985;
+  --color-sky-300: #0369a1;
+  --color-sky-400: #0284c7;
+  --color-indigo-300: #4338ca;
+  --color-indigo-400: #4f46e5;
+  --color-violet-100: #5b21b6;
+  --color-violet-200: #5b21b6;
+  --color-violet-300: #6d28d9;
+  --color-violet-400: #7c3aed;
+  --color-emerald-100: #065f46;
+  --color-emerald-200: #065f46;
+  --color-emerald-300: #047857;
+  --color-emerald-400: #059669;
+  --color-red-100: #991b1b;
+  --color-red-200: #991b1b;
+  --color-red-300: #b91c1c;
+  --color-red-400: #dc2626;
+  --color-amber-100: #92400e;
+  --color-amber-200: #92400e;
+  --color-amber-300: #b45309;
+  --color-amber-400: #d97706;
+  --color-orange-100: #9a3412;
+  --color-orange-200: #9a3412;
+  --color-orange-300: #c2410c;
+  --color-orange-400: #ea580c;
+}
+
+/* Botones y etiquetas de color sólido conservan su texto blanco */
+.tema-claro .tema-nocturno [class~="bg-blue-600"],
+.tema-claro .tema-nocturno [class~="bg-red-600"],
+.tema-claro .tema-nocturno [class~="bg-red-500"],
+.tema-claro .tema-nocturno [class~="bg-emerald-600"],
+.tema-claro .tema-nocturno [class~="bg-emerald-500"],
+.tema-claro .tema-nocturno [class~="from-blue-500"] {
+  --color-white: #ffffff;
+}
+
+/* Fondo del área de trabajo: degradado claro, sin foto nocturna */
+.tema-claro .app-fondo {
+  background-color: #eef2f8;
+  background-image:
+    radial-gradient(ellipse at 15% 20%, rgba(59, 130, 246, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 80%, rgba(14, 165, 233, 0.1) 0%, transparent 55%),
+    linear-gradient(160deg, #f8fafc 0%, #eef2f8 50%, #e2e8f0 100%);
+}
+.tema-claro .luciernaga {
+  display: none;
+}
+
+/* Tarjetas, barra superior, menú, ventanas y campos: vidrio blanco */
+.tema-claro .tema-nocturno [class*="bg-slate-800/"] {
+  background-color: rgba(255, 255, 255, 0.82);
+}
+.tema-claro .tema-nocturno [class*="bg-slate-900"]:not([class~="inset-0"]) {
+  background-color: rgba(255, 255, 255, 0.94);
+}
+.tema-claro .tema-nocturno [class*="bg-slate-950/90"],
+.tema-claro .tema-nocturno [class*="bg-slate-950/55"] {
+  background-color: rgba(255, 255, 255, 0.85);
+}
+.tema-claro .tema-nocturno [class*="bg-slate-950/30"] {
+  background-color: rgba(241, 245, 249, 0.9);
+}
+/* Fondos que oscurecen la pantalla detrás de una ventana: más suaves */
+.tema-claro .tema-nocturno[class~="inset-0"][class*="bg-slate-9"] {
+  background-color: rgba(15, 23, 42, 0.35);
+}
+
+/* Bordes por defecto en gris translúcido */
+@layer base {
+  .tema-claro .tema-nocturno *,
+  .tema-claro .tema-nocturno ::after,
+  .tema-claro .tema-nocturno ::before {
+    border-color: rgba(15, 23, 42, 0.1);
+  }
+}
+
+.tema-claro .tema-nocturno select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+/* Botón "Seleccionar archivo": su hover no debe oscurecerse */
+.tema-claro .tema-nocturno input[type="file"]::file-selector-button:hover {
+  background-color: #dbeafe;
+}
+
+/* SweetAlert en modo claro (solo dentro del sistema, no en el login) */
+html.tema-claro body:has(.tema-nocturno) .swal2-popup {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+html.tema-claro body:has(.tema-nocturno) .swal2-title {
+  color: #0f172a !important;
+}
+html.tema-claro body:has(.tema-nocturno) .swal2-html-container {
+  color: #475569 !important;
+}
+html.tema-claro body:has(.tema-nocturno) .swal2-toast {
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15) !important;
+}
+html.tema-claro body:has(.tema-nocturno) .swal2-container.swal2-backdrop-show {
+  background: rgba(15, 23, 42, 0.35) !important;
+}
+
+/* ============================================================
+   Impresión (Solicitud de pago y otras hojas)
+   ============================================================ */
+@page {
+  size: letter;
+  margin: 10mm 12mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+  }
+  /* Conservar fondos y colores (encabezado azul, filas resaltadas) */
+  .impresion,
+  .impresion * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Ventanas de SweetAlert u otros elementos flotantes no se imprimen */
+  .swal2-container {
+    display: none !important;
+  }
+}

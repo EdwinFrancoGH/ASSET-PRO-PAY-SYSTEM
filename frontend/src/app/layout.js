@@ -10,9 +10,15 @@ export const metadata = {
     description: "Sistema de peticiones de pago"
 };
 
+// Aplica el modo claro antes de pintar la página (evita el "parpadeo" oscuro).
+const scriptTema = `try{if(localStorage.getItem("assetpro-tema")==="claro"){document.documentElement.classList.add("tema-claro")}}catch(e){}`;
+
 export default function RootLayout({ children }) {
     return (
-        <html lang="es" className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}>
+        <html lang="es" className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`} suppressHydrationWarning>
+            <head>
+                <script dangerouslySetInnerHTML={{ __html: scriptTema }} />
+            </head>
             <body className="min-h-full">
                 <AuthProvider>{children}</AuthProvider>
             </body>

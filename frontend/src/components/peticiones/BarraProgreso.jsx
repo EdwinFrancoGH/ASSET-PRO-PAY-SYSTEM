@@ -16,16 +16,16 @@ export default function BarraProgreso({ estado }) {
                     : completado
                         ? "bg-emerald-600 text-white"
                         : esActual
-                            ? "bg-blue-600 text-white ring-4 ring-blue-100"
-                            : "bg-slate-200 text-slate-500";
+                            ? "bg-blue-600 text-white ring-4 ring-blue-500/30"
+                            : "bg-white/15 text-slate-400";
 
                 return (
                     <li key={paso.clave} className="flex flex-1 min-w-24 flex-col items-center relative">
-                        {i > 0 && <span className={`absolute top-4 right-1/2 w-full h-0.5 -z-0 ${i <= actual ? "bg-emerald-500" : "bg-slate-200"}`} />}
+                        {i > 0 && <span className={`absolute top-4 right-1/2 w-full h-0.5 -z-0 ${i <= actual ? "bg-emerald-500" : "bg-white/15"}`} />}
                         <span className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${color}`}>
                             {completado ? "✓" : esActual && rechazada ? "✕" : i + 1}
                         </span>
-                        <span className={`mt-2 text-center text-xs ${esActual ? "font-semibold text-slate-800" : "text-slate-500"}`}>{paso.etiqueta}</span>
+                        <span className={`mt-2 text-center text-xs ${esActual ? "font-semibold text-slate-100" : "text-slate-400"}`}>{paso.etiqueta}</span>
                     </li>
                 );
             })}

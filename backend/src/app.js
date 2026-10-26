@@ -6,8 +6,12 @@ import usersRoutes from "./routes/users.routes.js";
 import catalogosRoutes from "./routes/catalogos.routes.js";
 import peticionesRoutes from "./routes/peticiones.routes.js";
 import notificacionesRoutes from "./routes/notificaciones.routes.js";
+import planesRoutes from "./routes/planes.routes.js";
+import expedientesRoutes from "./routes/expedientes.routes.js";
+import facturasRoutes from "./routes/facturas.routes.js";
+import cajaChicaRoutes from "./routes/cajaChica.routes.js";
 
-import { verifyToken } from "./middlewares/auth.middleware.js";
+import { verifyToken, bloquearSoloCajaChica } from "./middlewares/auth.middleware.js";
 
 const app = express();
 
@@ -22,9 +26,15 @@ app.use(express.json({ limit: "2mb" }));
 // los crea un Administrador desde /usuarios (o el script de seed).
 app.use("/api/auth", verifyToken, authRoutes);
 app.use("/api/users", verifyToken, usersRoutes);
-app.use("/api/catalogos", verifyToken, catalogosRoutes);
-app.use("/api/peticiones", verifyToken, peticionesRoutes);
+// bloquearSoloCajaChica: Cajero y Solicitante caja chica no entran a los módulos de pagos.
+app.use("/api/catalogos", verifyToken, bloquearSoloCajaChica, catalogosRoutes);
+app.use("/api/peticiones", verifyToken, bloquearSoloCajaChica, peticionesRoutes);
 app.use("/api/notificaciones", verifyToken, notificacionesRoutes);
+app.use("/api/planes", verifyToken, bloquearSoloCajaChica, planesRoutes);
+app.use("/api/expedientes", verifyToken, bloquearSoloCajaChica, expedientesRoutes);
+app.use("/api/facturas", verifyToken, bloquearSoloCajaChica, facturasRoutes);
+// Caja chica: abierta a todos los roles; los permisos se validan en el service.
+app.use("/api/caja-chica", verifyToken, cajaChicaRoutes);
 
 app.get("/", (req, res) => {
     res.json({ mensaje: "ASSET PRO - Peticiones de Pago API funcionando" });

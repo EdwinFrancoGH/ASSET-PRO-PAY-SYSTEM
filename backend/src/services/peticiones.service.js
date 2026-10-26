@@ -3,8 +3,13 @@ import path from "path";
 import crypto from "crypto";
 import db from "../config/firebase.js";
 import { ROLES } from "../config/roles.js";
-import { ESTADOS, ETIQUETAS_ESTADO, ESTADOS_EDITABLES, ESTADOS_PENDIENTES_AUTORIZADOR } from "../config/estados.js";
-import { obtenerPorId as obtenerCatalogo } from "./catalogos.service.js";
+import { ESTADOS, ETIQUETAS_ESTADO, ESTADOS_EDITABLES, ESTADOS_PENDIENTES_AUTORIZADOR, TIPOS_CLIENTE, TIPO_GASTO_OPERATIVO, TERMINOS_PAGO, CONCEPTO_RETAIL } from "../config/estados.js";
+import { registrarCuentaSecundaria } from "./proveedores.service.js";
+import { ORIGENES, origenDeProveedor, tipoDePeticion } from "../config/bancario.js";
+import { calcularPago, documentoValido } from "../config/impuestos.js";
+import { obtenerPorId as obtenerCatalogo, normalizarCuentaLocal, normalizarCuentaExterior } from "./catalogos.service.js";
+import { esCompras } from "./permisos.service.js";
+import { datosParaCuota, vincularCuota, liberarCuota } from "./planes.service.js";
 import { notificar, obtenerUsuariosPorRol } from "./notificaciones.service.js";
 import { validarPeticion } from "../validators/peticion.validator.js";
 import { ErrorHttp } from "../utils/errores.js";
@@ -13,11 +18,22 @@ import { UPLOADS_DIR } from "../middlewares/upload.middleware.js";
 const COLECCION = "peticiones";
 
 const ahora = () => new Date().toISOString();
+// Fecha de hoy (AAAA-MM-DD) en hora de El Salvador.
+const hoySV = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
 const redondear = (n) => Math.round(Number(n) * 100) / 100;
 const numeroONull = (v) => (v === "" || v === undefined || v === null ? null : Number(v));
 const texto = (v) => (v === undefined || v === null ? "" : String(v).trim());
 
 const esGestion = (usuario) => [ROLES.CONTABILIDAD, ROLES.ADMIN].includes(usuario.role);
+
+// Solo el área de Compras (o el Administrador) puede peticionar al exterior.
+export const puedePeticionarExterior = esCompras;
+
+const verificarPermisoTipo = async (tipo, usuario) => {
+    if (tipo === ORIGENES.EXTERIOR && !(await puedePeticionarExterior(usuario))) {
+        throw new ErrorHttp(403, "Solo el área de Compras puede hacer peticiones a proveedores del exterior.");
+    }
+};
 
 // ---------------------------------------------------------------------------
 // Correlativo PP-AAAA-00001. Se genera en una transacción sobre
@@ -46,15 +62,30 @@ const generarNumero = async () => {
 // petición conserva los datos con los que se aprobó.
 // ---------------------------------------------------------------------------
 const construirCampos = async (datos, solicitante) => {
-    const [area, proveedor, termino] = await Promise.all([
-        obtenerCatalogo("areas", datos.areaId),
-        obtenerCatalogo("proveedores", datos.proveedorId),
-        obtenerCatalogo("terminosPago", datos.terminoPagoId)
+    // Si el usuario tiene un área asignada (Usuarios → Área), la petición
+    // siempre va a esa área, aunque el navegador envíe otra.
+    const areaId = solicitante.areaId || datos.areaId;
+
+    const [area, proveedor] = await Promise.all([
+        obtenerCatalogo("areas", areaId),
+        obtenerCatalogo("proveedores", datos.proveedorId)
     ]);
 
-    if (datos.areaId && !area) throw new ErrorHttp(400, "El área seleccionada no existe.");
+    if (areaId && !area) throw new ErrorHttp(400, solicitante.areaId ? "El área asignada a tu usuario ya no existe. Contacta al administrador." : "El área seleccionada no existe.");
     if (datos.proveedorId && !proveedor) throw new ErrorHttp(400, "El proveedor seleccionado no existe.");
-    if (datos.terminoPagoId && !termino) throw new ErrorHttp(400, "El término de pago seleccionado no existe.");
+
+    // El tipo (Local / Exterior) lo define el proveedor, no el navegador.
+    const tipo = proveedor ? origenDeProveedor(proveedor) : ORIGENES.LOCAL;
+    await verificarPermisoTipo(tipo, solicitante);
+
+    // Compras (misma marca del área que permite el exterior) puede usar orden
+    // ELM y los tipos Cliente / Retail / Stock B2B. Las demás áreas solo
+    // registran Gasto/Costo Operativo, sin orden ELM ni datos de cliente.
+    const deCompras = await puedePeticionarExterior(solicitante);
+    const tipoCliente = deCompras
+        ? (TIPOS_CLIENTE.includes(datos.tipoCliente) ? datos.tipoCliente : "")
+        : TIPO_GASTO_OPERATIVO;
+    const conCliente = deCompras && (!tipoCliente || tipoCliente === "CLIENTE");
 
     let autorizador = null;
     if (datos.autorizadorId) {
@@ -76,36 +107,55 @@ const construirCampos = async (datos, solicitante) => {
         if (!cuentaBancaria) throw new ErrorHttp(400, "La cuenta bancaria seleccionada no pertenece al proveedor.");
     }
 
-    const montoCompra = numeroONull(datos.montoCompra);
+    // Cuenta diferente: llega con los campos del tipo (local / exterior) y se
+    // guarda con la misma forma que las cuentas del catálogo. En borrador
+    // puede estar incompleta; se valida al enviar.
+    const nueva = pagarCuentaDiferente && datos.nuevaCuenta && typeof datos.nuevaCuenta === "object" ? datos.nuevaCuenta : null;
+    if (nueva) {
+        cuentaBancaria = {
+            ...(tipo === ORIGENES.EXTERIOR ? normalizarCuentaExterior(nueva) : normalizarCuentaLocal(nueva)),
+            nueva: true
+        };
+    }
+
     const porcentaje = numeroONull(datos.porcentaje);
-    // "Monto" es la base sobre la que se aplica el %; si no se indica, se
-    // usa el monto de compra. Monto a pagar = Monto × % / 100.
-    const monto = numeroONull(datos.monto) ?? montoCompra;
+    // "Monto" es la base sobre la que se aplica el %. Monto a pagar = Monto × % / 100.
+    const monto = numeroONull(datos.monto);
     const montoPagar = monto !== null && porcentaje !== null ? redondear((monto * porcentaje) / 100) : null;
 
+    // Impuestos y retenciones (solo proveedores locales). Se calculan aquí,
+    // no se toman del navegador. Monto y monto a pagar son sin IVA.
+    const esLocal = tipo === ORIGENES.LOCAL;
+    const clasificacionContribuyente = esLocal ? proveedor?.clasificacionContribuyente || "" : "";
+    const documentoFiscal = documentoValido(clasificacionContribuyente, datos.documentoFiscal);
+    const aplicaRetencionRenta = esLocal && (datos.aplicaRetencionRenta === true || datos.aplicaRetencionRenta === "true");
+    const calculo = esLocal && proveedor
+        ? calcularPago({ monto, subtotal: montoPagar, clasificacion: clasificacionContribuyente, documento: documentoFiscal, aplicaRetencionRenta })
+        : null;
+
     return {
+        tipo,
+
         // Información general
         fechaSolicitud: texto(datos.fechaSolicitud) || null,
         areaId: area?.id || null,
         areaNombre: area?.nombre || "",
-        ordenELM: texto(datos.ordenELM),
-        ticketCompromiso: texto(datos.ticketCompromiso),
+        ordenELM: deCompras ? texto(datos.ordenELM) : "",
 
         // Proveedor
         proveedorId: proveedor?.id || null,
         proveedorNombre: proveedor?.nombre || "",
         codigoSAP: proveedor?.codigoSAP || "",
-        proforma: texto(datos.proforma),
-        terminoPagoId: termino?.id || null,
-        terminoPagoNombre: termino?.nombre || "",
-        montoCompra,
-        razonPago: texto(datos.razonPago),
+        // Anticipo o Contado (con factura).
+        terminoPago: TERMINOS_PAGO[datos.terminoPago] ? datos.terminoPago : "",
+        terminoPagoNombre: TERMINOS_PAGO[datos.terminoPago] || "",
+        terminoPagoId: null,
 
         // Cliente
-        cliente: texto(datos.cliente),
-        licitacionOC: texto(datos.licitacionOC),
-        fechaEntrega: texto(datos.fechaEntrega) || null,
-        proyecto: texto(datos.proyecto),
+        tipoCliente,
+        // La información del cliente solo aplica cuando el tipo es CLIENTE.
+        cliente: conCliente ? texto(datos.cliente) : "",
+        licitacionOC: conCliente ? texto(datos.licitacionOC) : "",
 
         // Pago
         porcentaje,
@@ -115,13 +165,18 @@ const construirCampos = async (datos, solicitante) => {
         autorizadorNombre: autorizador?.name || "",
         autorizadorEmail: autorizador?.email || "",
         montoPagar,
-        conceptoCompra: texto(datos.conceptoCompra),
+        clasificacionContribuyente,
+        documentoFiscal: esLocal ? documentoFiscal : "",
+        aplicaRetencionRenta,
+        calculo,
+        conceptoCompra: texto(datos.conceptoCompra) || (tipoCliente === "RETAIL" ? CONCEPTO_RETAIL[tipo] || CONCEPTO_RETAIL.LOCAL : ""),
 
         // Datos bancarios
         pagarCuentaDiferente,
-        cuentaBancariaId: cuentaBancaria?.id || null,
+        cuentaBancariaId: pagarCuentaDiferente ? null : cuentaBancaria?.id || null,
         cuentaBancaria,
-        nuevaCuentaBancaria: pagarCuentaDiferente ? texto(datos.nuevaCuentaBancaria) : "",
+        // Texto libre de peticiones antiguas (antes de los campos por tipo).
+        nuevaCuentaBancaria: pagarCuentaDiferente && !nueva ? texto(datos.nuevaCuentaBancaria) : "",
 
         observaciones: texto(datos.observaciones)
     };
@@ -195,7 +250,19 @@ const transicionar = async (id, usuario, { desde, hacia, accion, comentario, ver
 // ---------------------------------------------------------------------------
 // CRUD del solicitante
 // ---------------------------------------------------------------------------
-export const crear = async (datos, usuario) => {
+export const crear = async (datosRecibidos, usuario) => {
+    // Petición de una cuota de un plan de pago: proveedor, Orden ELM, moneda
+    // y monto se toman del plan, no del navegador.
+    const enlace = datosRecibidos.planId ? await datosParaCuota(datosRecibidos.planId, datosRecibidos.cuotaId, usuario) : null;
+    // En un plan, la última cuota es de contado y las anteriores son anticipos.
+    const datos = enlace
+        ? {
+              ...datosRecibidos,
+              ...enlace.camposPeticion,
+              terminoPago: datosRecibidos.terminoPago || (enlace.cuota.numero === enlace.plan.cuotas.length ? "CONTADO" : "ANTICIPO")
+          }
+        : datosRecibidos;
+
     const campos = await construirCampos(datos, usuario);
     const numero = await generarNumero();
 
@@ -203,6 +270,8 @@ export const crear = async (datos, usuario) => {
         numero,
         estado: ESTADOS.BORRADOR,
         ...campos,
+        // La fecha de solicitud la fija el sistema; no se toma del formulario.
+        fechaSolicitud: hoySV(),
         solicitanteId: usuario.uid,
         solicitanteNombre: usuario.name || usuario.email,
         solicitanteEmail: usuario.email,
@@ -213,7 +282,18 @@ export const crear = async (datos, usuario) => {
         fechaActualizacion: ahora()
     };
 
+    if (enlace) Object.assign(peticion, enlace.vinculo);
+
     const ref = await db.collection(COLECCION).add(peticion);
+
+    if (enlace) {
+        try {
+            await vincularCuota(enlace.vinculo.planId, enlace.vinculo.cuotaId, { id: ref.id, numero }, usuario);
+        } catch (error) {
+            await ref.delete();
+            throw error;
+        }
+    }
     return { id: ref.id, ...peticion };
 };
 
@@ -226,11 +306,28 @@ const verificarEditable = (peticion, usuario) => {
     }
 };
 
-export const actualizar = async (id, datos, usuario) => {
+export const actualizar = async (id, datosRecibidos, usuario) => {
     const peticion = await leerVisible(id, usuario);
     verificarEditable(peticion, usuario);
 
-    const cambios = { ...(await construirCampos(datos, usuario)), fechaActualizacion: ahora() };
+    // Cuota de un plan: estos datos no cambian (se modifican desde el plan).
+    const datos = peticion.planId
+        ? {
+              ...datosRecibidos,
+              proveedorId: peticion.proveedorId,
+              ordenELM: peticion.ordenELM,
+              moneda: peticion.moneda,
+              monto: peticion.monto,
+              porcentaje: peticion.porcentaje
+          }
+        : datosRecibidos;
+
+    const cambios = {
+        ...(await construirCampos(datos, usuario)),
+        // La fecha de solicitud no se modifica al editar.
+        fechaSolicitud: peticion.fechaSolicitud || hoySV(),
+        fechaActualizacion: ahora()
+    };
     await db.collection(COLECCION).doc(id).update(cambios);
     return { ...peticion, ...cambios };
 };
@@ -243,6 +340,7 @@ export const eliminar = async (id, usuario) => {
     }
 
     await db.collection(COLECCION).doc(id).delete();
+    if (peticion.planId) await liberarCuota(peticion.planId, peticion.cuotaId, peticion, usuario);
     fs.rm(path.join(UPLOADS_DIR, "peticiones", id), { recursive: true, force: true }, () => {});
     return true;
 };
@@ -305,7 +403,8 @@ const consultarVisibles = async (usuario, { soloMias = false } = {}) => {
 };
 
 // Filtros: estado (uno o varios separados por coma), desde, hasta
-// (fecha de solicitud), areaId, proveedorId, moneda, q (texto libre),
+// (fecha de solicitud), areaId, proveedorId, moneda, tipo (LOCAL/EXTERIOR),
+// q (texto libre),
 // alcance=mias.
 export const listar = async (usuario, filtros = {}) => {
     let lista = (await consultarVisibles(usuario, { soloMias: filtros.alcance === "mias" }))
@@ -320,6 +419,7 @@ export const listar = async (usuario, filtros = {}) => {
     if (filtros.areaId) lista = lista.filter((p) => p.areaId === filtros.areaId);
     if (filtros.proveedorId) lista = lista.filter((p) => p.proveedorId === filtros.proveedorId);
     if (filtros.moneda) lista = lista.filter((p) => p.moneda === filtros.moneda);
+    if (filtros.tipo) lista = lista.filter((p) => tipoDePeticion(p) === filtros.tipo);
     if (filtros.q) {
         const q = String(filtros.q).toLowerCase();
         lista = lista.filter((p) =>
@@ -361,6 +461,9 @@ export const enviar = async (id, usuario) => {
     const error = validarPeticion(actual, { completa: true });
     if (error) throw new ErrorHttp(400, error);
 
+    // El área del usuario pudo cambiar desde que se guardó el borrador.
+    await verificarPermisoTipo(tipoDePeticion(actual), usuario);
+
     // El autorizador pudo haber sido desactivado desde que se guardó el borrador.
     const autorizador = await db.collection("usuarios").doc(actual.autorizadorId).get();
     if (!autorizador.exists || autorizador.data().role !== ROLES.AUTORIZADOR || autorizador.data().activo === false) {
@@ -369,12 +472,21 @@ export const enviar = async (id, usuario) => {
 
     const esReenvio = actual.estado !== ESTADOS.BORRADOR;
 
+    // "Pagar a una cuenta diferente": al enviar, la cuenta queda registrada
+    // en el proveedor como cuenta secundaria (si no existía ya).
+    let extra = { fechaEnvio: ahora() };
+    const cuenta = actual.cuentaBancaria;
+    if (actual.pagarCuentaDiferente && cuenta?.nueva && !cuenta.registradaEnProveedor) {
+        await registrarCuentaSecundaria(actual.proveedorId, cuenta, usuario, actual.numero);
+        extra = { ...extra, cuentaBancaria: { ...cuenta, registradaEnProveedor: true } };
+    }
+
     const peticion = await transicionar(id, usuario, {
         desde: ESTADOS_EDITABLES,
         hacia: ESTADOS.ENVIADA,
         accion: esReenvio ? "REENVIADA" : "ENVIADA",
         verificar: (p) => verificarEditable(p, usuario),
-        extra: { fechaEnvio: ahora() }
+        extra
     });
 
     await notificar({

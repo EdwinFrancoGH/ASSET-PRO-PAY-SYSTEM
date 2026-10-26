@@ -13,7 +13,8 @@ const INTERVALO_MS = 30_000;
 // (ej. aprobar): window.dispatchEvent(new Event("notificaciones:refrescar"))
 export const refrescarNotificaciones = () => window.dispatchEvent(new Event("notificaciones:refrescar"));
 
-export default function NotificacionesBell() {
+// oscuro: botón claro para la barra superior nocturna.
+export default function NotificacionesBell({ oscuro = true }) {
     const [abierto, setAbierto] = useState(false);
     const [datos, setDatos] = useState({ noLeidas: 0, notificaciones: [] });
     const contenedor = useRef(null);
@@ -51,7 +52,8 @@ export default function NotificacionesBell() {
         if (!n.leida) {
             marcarLeida(n.id).then(cargar).catch(() => {});
         }
-        if (n.peticionId) router.push(`/peticiones/${n.peticionId}`);
+        if (n.enlace) router.push(n.enlace);
+        else if (n.peticionId) router.push(`/peticiones/${n.peticionId}`);
     };
 
     const leerTodas = async () => {
@@ -60,10 +62,10 @@ export default function NotificacionesBell() {
     };
 
     return (
-        <div className="relative" ref={contenedor}>
+        <div className="sm:relative" ref={contenedor}>
             <button
                 onClick={() => setAbierto((v) => !v)}
-                className="relative rounded-full p-2 text-slate-600 hover:bg-slate-100"
+                className={`relative rounded-full p-2 ${oscuro ? "text-slate-200 hover:bg-white/10 hover:text-white" : "text-slate-300 hover:bg-white/10"}`}
                 aria-label={`Notificaciones${datos.noLeidas ? `, ${datos.noLeidas} sin leer` : ""}`}
             >
                 <FaBell className="text-xl" />
@@ -75,11 +77,11 @@ export default function NotificacionesBell() {
             </button>
 
             {abierto && (
-                <div className="absolute right-0 mt-2 w-96 max-w-[calc(100vw-2rem)] rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200 z-50">
+                <div className="absolute inset-x-0 top-full mt-2 sm:inset-x-auto sm:right-0 sm:top-auto sm:w-96 sm:max-w-[calc(100vw-2rem)] rounded-2xl bg-slate-900/95 backdrop-blur-xl shadow-2xl shadow-black/60 ring-1 ring-white/15 z-50">
                     <div className="flex items-center justify-between border-b px-4 py-3">
-                        <span className="font-semibold text-slate-800">Notificaciones</span>
+                        <span className="font-semibold text-slate-100">Notificaciones</span>
                         {datos.noLeidas > 0 && (
-                            <button onClick={leerTodas} className="text-sm text-blue-600 hover:underline">
+                            <button onClick={leerTodas} className="text-sm text-blue-400 hover:underline">
                                 Marcar todas como leídas
                             </button>
                         )}
@@ -87,18 +89,18 @@ export default function NotificacionesBell() {
 
                     <ul className="max-h-96 overflow-y-auto divide-y">
                         {datos.notificaciones.length === 0 && (
-                            <li className="px-4 py-8 text-center text-sm text-slate-500">No tienes notificaciones.</li>
+                            <li className="px-4 py-8 text-center text-sm text-slate-400">No tienes notificaciones.</li>
                         )}
                         {datos.notificaciones.map((n) => (
                             <li key={n.id}>
                                 <button
                                     onClick={() => abrirNotificacion(n)}
-                                    className={`w-full text-left px-4 py-3 hover:bg-slate-50 flex gap-3 ${n.leida ? "" : "bg-blue-50/60"}`}
+                                    className={`w-full text-left px-4 py-3 hover:bg-white/5 flex gap-3 ${n.leida ? "" : "bg-blue-500/10"}`}
                                 >
                                     <span className={`mt-1.5 h-2 w-2 flex-none rounded-full ${n.leida ? "bg-transparent" : "bg-blue-600"}`} />
                                     <span className="min-w-0">
-                                        <span className="block text-sm font-semibold text-slate-800">{n.titulo}</span>
-                                        <span className="block text-sm text-slate-600 line-clamp-2">{n.mensaje}</span>
+                                        <span className="block text-sm font-semibold text-slate-100">{n.titulo}</span>
+                                        <span className="block text-sm text-slate-300 line-clamp-2">{n.mensaje}</span>
                                         <span className="block mt-1 text-xs text-slate-400">{tiempoRelativo(n.fecha)}</span>
                                     </span>
                                 </button>
@@ -106,7 +108,7 @@ export default function NotificacionesBell() {
                         ))}
                     </ul>
 
-                    <Link href="/notificaciones" onClick={() => setAbierto(false)} className="block border-t px-4 py-3 text-center text-sm font-medium text-blue-600 hover:bg-slate-50 rounded-b-2xl">
+                    <Link href="/notificaciones" onClick={() => setAbierto(false)} className="block border-t px-4 py-3 text-center text-sm font-medium text-blue-400 hover:bg-white/5 rounded-b-2xl">
                         Ver todas
                     </Link>
                 </div>

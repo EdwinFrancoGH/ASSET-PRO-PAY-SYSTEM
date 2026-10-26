@@ -15,6 +15,8 @@ import { useAuth } from "../../context/AuthContext";
 import { ROLES } from "../../utils/roles";
 import { ESTADOS, ESTADOS_EDITABLES } from "../../utils/estados";
 import { formatoMonto, hoyISO, mensajeError } from "../../utils/formato";
+import { descripcionCuenta, tipoDePeticion } from "../../utils/bancario";
+import { montoFinal } from "../../utils/impuestos";
 import {
     enviarPeticion,
     eliminarPeticion,
@@ -118,10 +120,10 @@ export default function PanelAcciones({ peticion: p, onActualizada }) {
     const hayAcciones = puedeEditar || puedeAutorizar || puedeRevisarContable || puedePagar;
 
     return (
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-lg font-semibold text-slate-700 mb-4">Acciones</h2>
+        <div className="bg-slate-800/35 backdrop-blur-xl ring-1 ring-white/15 rounded-2xl shadow-lg p-6">
+            <h2 className="text-lg font-semibold text-slate-200 mb-4">Acciones</h2>
 
-            {!hayAcciones && <p className="text-slate-600">{esperando(p)}</p>}
+            {!hayAcciones && <p className="text-slate-300">{esperando(p)}</p>}
 
             <div className="flex flex-col gap-3">
                 {puedeEditar && (
@@ -133,7 +135,7 @@ export default function PanelAcciones({ peticion: p, onActualizada }) {
                             <FaPen /> Editar
                         </Link>
                         {p.estado === ESTADOS.BORRADOR && (
-                            <button onClick={eliminar} className="flex items-center justify-center gap-2 rounded-xl px-6 py-3 font-semibold text-red-600 hover:bg-red-50">
+                            <button onClick={eliminar} className="flex items-center justify-center gap-2 rounded-xl px-6 py-3 font-semibold text-red-400 hover:bg-red-500/15">
                                 <FaTrash /> Eliminar borrador
                             </button>
                         )}
@@ -142,7 +144,7 @@ export default function PanelAcciones({ peticion: p, onActualizada }) {
 
                 {(puedeAutorizar || puedeRevisarContable) && (
                     <>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-slate-300">
                             {puedeAutorizar ? "Esta petición espera tu autorización." : "Autorizada por " + p.autorizadorNombre + ". Revisa y decide."}
                         </p>
                         <button onClick={() => abrirDecision(puedeAutorizar ? "autorizador" : "contabilidad", "aprobar")} disabled={ocupado} className={`${botonExito} flex items-center justify-center gap-2`}>
@@ -156,11 +158,11 @@ export default function PanelAcciones({ peticion: p, onActualizada }) {
 
                 {puedePagar && (
                     <>
-                        <p className="text-sm text-slate-600">
-                            Monto a pagar: <strong className="text-slate-900">{formatoMonto(p.montoPagar, p.moneda)}</strong>
+                        <p className="text-sm text-slate-300">
+                            Pago efectivo: <strong className="text-white">{formatoMonto(montoFinal(p), p.moneda)}</strong>
                         </p>
-                        <p className="text-sm text-slate-600">
-                            En la transferencia, escribe <strong className="text-slate-900">{p.numero}</strong> en la referencia o descripción.
+                        <p className="text-sm text-slate-300">
+                            En la transferencia, escribe <strong className="text-white">{p.numero}</strong> en la referencia o descripción.
                         </p>
                         <button onClick={() => setPagoAbierto(true)} className={`${botonExito} flex items-center justify-center gap-2`}>
                             <FaMoneyCheckAlt /> Registrar pago
@@ -175,7 +177,7 @@ export default function PanelAcciones({ peticion: p, onActualizada }) {
                 titulo={decision?.tipo === "aprobar" ? `Aprobar ${p.numero}` : `Rechazar ${p.numero}`}
                 onCerrar={() => !ocupado && setDecision(null)}
             >
-                <p className="text-slate-600">
+                <p className="text-slate-300">
                     {decision?.tipo === "aprobar"
                         ? decision?.etapa === "autorizador"
                             ? "La petición pasará a revisión de Contabilidad."
@@ -196,12 +198,12 @@ export default function PanelAcciones({ peticion: p, onActualizada }) {
             {/* Registrar pago */}
             <Modal abierto={pagoAbierto} titulo={`Registrar pago de ${p.numero}`} onCerrar={() => !ocupado && setPagoAbierto(false)}>
                 <div className="space-y-4">
-                    <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-700">
-                        <p><strong>{formatoMonto(p.montoPagar, p.moneda)}</strong> a {p.proveedorNombre}</p>
+                    <div className="rounded-lg bg-white/5 p-4 text-sm text-slate-200">
+                        <p><strong>{formatoMonto(montoFinal(p), p.moneda)}</strong> a {p.proveedorNombre}</p>
                         <p className="mt-1">
-                            {p.pagarCuentaDiferente
-                                ? <span className="whitespace-pre-line">{p.nuevaCuentaBancaria}</span>
-                                : p.cuentaBancaria && `${p.cuentaBancaria.banco} ${p.cuentaBancaria.tipoCuenta} ${p.cuentaBancaria.numeroCuenta}`}
+                            {p.cuentaBancaria
+                                ? descripcionCuenta(p.cuentaBancaria, tipoDePeticion(p))
+                                : p.pagarCuentaDiferente && <span className="whitespace-pre-line">{p.nuevaCuentaBancaria}</span>}
                         </p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -218,7 +220,7 @@ export default function PanelAcciones({ peticion: p, onActualizada }) {
                             type="file"
                             accept=".pdf,.png,.jpg,.jpeg,.webp"
                             onChange={(e) => setPago({ ...pago, comprobante: e.target.files?.[0] || null })}
-                            className="mt-2 block w-full text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
+                            className="mt-2 block w-full text-sm text-slate-300 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
                         />
                     </Campo>
                     <Campo etiqueta="Comentario (opcional)" htmlFor="comentarioPago">

@@ -10,9 +10,9 @@ export default function RequireRole({ roles, children }) {
 
     if (!roles.includes(userRole)) {
         return (
-            <div className="flex flex-col items-center justify-center h-96 text-slate-500">
+            <div className="flex flex-col items-center justify-center h-96 text-slate-400">
                 <FaLock size={40} className="mb-4 text-slate-400" />
-                <h2 className="text-xl font-bold text-slate-800">Acceso denegado</h2>
+                <h2 className="text-xl font-bold text-slate-100">Acceso denegado</h2>
                 <p>Tu rol no tiene acceso a esta página.</p>
             </div>
         );
