@@ -30,9 +30,9 @@ export default function ProtectedRoute({ children }) {
     if (!userData) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-900 p-6">
-                <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow-xl">
-                    <h2 className="text-xl font-bold text-slate-800">No pudimos abrir tu cuenta</h2>
-                    <p className="mt-3 text-slate-600">{errorPerfil}</p>
+                <div className="max-w-md rounded-2xl bg-slate-800/35 backdrop-blur-xl ring-1 ring-white/15 p-8 text-center shadow-xl">
+                    <h2 className="text-xl font-bold text-slate-100">No pudimos abrir tu cuenta</h2>
+                    <p className="mt-3 text-slate-300">{errorPerfil}</p>
                     <button
                         onClick={logout}
                         className="mt-6 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"

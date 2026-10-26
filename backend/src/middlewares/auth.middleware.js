@@ -1,4 +1,5 @@
 import { auth, db } from "../config/firebase.js";
+import { ROLES_SOLO_CAJA_CHICA } from "../config/roles.js";
 
 // Verifica el token de Firebase y, además, carga el documento del usuario
 // en Firestore (rol, nombre, activo) en req.usuario, para que los
@@ -33,6 +34,16 @@ export const verifyToken = async (req, res, next) => {
         console.error("Error verificando token:", error.message);
         return res.status(401).json({ ok: false, message: "Token inválido o expirado." });
     }
+};
+
+// Cajero y Solicitante caja chica solo trabajan en Caja chica: se les
+// bloquean los módulos de pagos (peticiones, catálogos, planes, expedientes,
+// facturas). Los demás roles pasan sin cambios. Se usa después de verifyToken.
+export const bloquearSoloCajaChica = (req, res, next) => {
+    if (ROLES_SOLO_CAJA_CHICA.includes(req.usuario?.role)) {
+        return res.status(403).json({ ok: false, message: "Tu rol solo tiene acceso a Caja chica." });
+    }
+    next();
 };
 
 // Autorización por rol. Se usa después de verifyToken:

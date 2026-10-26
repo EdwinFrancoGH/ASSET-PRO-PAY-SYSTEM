@@ -49,9 +49,9 @@ function Bandeja() {
                 {grupos.map((g) => {
                     const lista = (pendientes || []).filter((p) => p.accionPendiente === g.accion);
                     return (
-                        <section key={g.titulo} className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                            <h2 className="px-8 pt-6 pb-4 text-xl font-semibold text-slate-700 border-b">
-                                {g.titulo} {pendientes && <span className="ml-2 rounded-full bg-slate-100 px-2.5 py-0.5 text-sm text-slate-600">{lista.length}</span>}
+                        <section key={g.titulo} className="bg-slate-800/35 backdrop-blur-xl ring-1 ring-white/15 rounded-2xl shadow-lg overflow-hidden">
+                            <h2 className="px-8 pt-6 pb-4 text-xl font-semibold text-slate-200 border-b">
+                                {g.titulo} {pendientes && <span className="ml-2 rounded-full bg-white/10 px-2.5 py-0.5 text-sm text-slate-300">{lista.length}</span>}
                             </h2>
                             {pendientes === null ? <Cargando /> : <TablaPeticiones peticiones={lista} vacio={g.vacio} />}
                         </section>

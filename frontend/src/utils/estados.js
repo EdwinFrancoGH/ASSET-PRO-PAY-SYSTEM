@@ -11,14 +11,14 @@ export const ESTADOS = {
 };
 
 export const INFO_ESTADO = {
-    BORRADOR: { etiqueta: "Borrador", clase: "bg-slate-100 text-slate-700 ring-slate-300" },
-    ENVIADA: { etiqueta: "Enviada", clase: "bg-sky-50 text-sky-700 ring-sky-200" },
-    EN_REVISION: { etiqueta: "En revisión", clase: "bg-amber-50 text-amber-800 ring-amber-200" },
-    APROBADA_AUTORIZADOR: { etiqueta: "Aprobada por autorizador", clase: "bg-indigo-50 text-indigo-700 ring-indigo-200" },
-    RECHAZADA_AUTORIZADOR: { etiqueta: "Rechazada por autorizador", clase: "bg-red-50 text-red-700 ring-red-200" },
-    APROBADA_CONTABILIDAD: { etiqueta: "Aprobada por contabilidad", clase: "bg-violet-50 text-violet-700 ring-violet-200" },
-    RECHAZADA_CONTABILIDAD: { etiqueta: "Rechazada por contabilidad", clase: "bg-red-50 text-red-700 ring-red-200" },
-    PAGADA: { etiqueta: "Pagada", clase: "bg-emerald-50 text-emerald-700 ring-emerald-200" }
+    BORRADOR: { etiqueta: "Borrador", clase: "bg-white/10 text-slate-200 ring-white/20" },
+    ENVIADA: { etiqueta: "Enviada", clase: "bg-sky-500/15 text-sky-300 ring-sky-400/30" },
+    EN_REVISION: { etiqueta: "En revisión", clase: "bg-amber-500/15 text-amber-200 ring-amber-400/30" },
+    APROBADA_AUTORIZADOR: { etiqueta: "Aprobada por autorizador", clase: "bg-indigo-500/15 text-indigo-300 ring-indigo-400/30" },
+    RECHAZADA_AUTORIZADOR: { etiqueta: "Rechazada por autorizador", clase: "bg-red-500/15 text-red-300 ring-red-400/30" },
+    APROBADA_CONTABILIDAD: { etiqueta: "Aprobada por contabilidad", clase: "bg-violet-500/15 text-violet-300 ring-violet-400/30" },
+    RECHAZADA_CONTABILIDAD: { etiqueta: "Rechazada por contabilidad", clase: "bg-red-500/15 text-red-300 ring-red-400/30" },
+    PAGADA: { etiqueta: "Pagada", clase: "bg-emerald-500/15 text-emerald-300 ring-emerald-400/30" }
 };
 
 // Orden del flujo, para la barra de progreso del detalle.

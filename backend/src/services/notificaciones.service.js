@@ -18,7 +18,9 @@ export const obtenerUsuariosPorRol = async (rol) => {
 // Crea una notificación en la app para cada usuario y, si enviarEmail es
 // true, les manda el aviso por correo. Se llama DESPUÉS de guardar el
 // cambio de estado; si algo falla aquí, solo se registra en consola.
-export const notificar = async ({ usuarioIds, titulo, mensaje, peticion, enviarEmail = true }) => {
+// enlace (opcional): ruta de la app a la que lleva la notificación (ej. caja
+// chica). Si no se indica, se usa la petición como siempre.
+export const notificar = async ({ usuarioIds, titulo, mensaje, peticion, enviarEmail = true, enlace = null }) => {
     try {
         const ids = [...new Set((usuarioIds || []).filter(Boolean))];
         if (ids.length === 0) return;
@@ -34,6 +36,7 @@ export const notificar = async ({ usuarioIds, titulo, mensaje, peticion, enviarE
                 mensaje,
                 peticionId: peticion?.id || null,
                 peticionNumero: peticion?.numero || null,
+                enlace: enlace || null,
                 leida: false,
                 fecha
             });
@@ -54,7 +57,7 @@ export const notificar = async ({ usuarioIds, titulo, mensaje, peticion, enviarE
             html: construirHtmlAviso({
                 titulo,
                 mensaje,
-                enlace: peticion?.id ? `${baseUrl}/peticiones/${peticion.id}` : null,
+                enlace: enlace ? `${baseUrl}${enlace}` : peticion?.id ? `${baseUrl}/peticiones/${peticion.id}` : null,
                 detalle: peticion ? [
                     ["Número", peticion.numero],
                     ["Estado", ETIQUETAS_ESTADO[peticion.estado]],

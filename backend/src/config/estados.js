@@ -38,3 +38,21 @@ export const ESTADOS_EDITABLES = [
 export const ESTADOS_PENDIENTES_AUTORIZADOR = [ESTADOS.ENVIADA, ESTADOS.EN_REVISION];
 
 export const MONEDAS = ["USD", "EUR"];
+
+// Término de pago de la petición (obligatorio). Contado se paga con factura.
+export const TERMINOS_PAGO = { ANTICIPO: "Anticipo", CONTADO: "Contado (con factura)" };
+
+// Tipo de la compra. Solo CLIENTE lleva nombre de cliente.
+//   CLIENTE, RETAIL, STOCK (Stock B2B) → solo el área de Compras.
+//   GASTO_OPERATIVO → gasto o costo operativo; el único tipo para las
+//   demás áreas (no llevan orden de compra ELM).
+export const TIPOS_CLIENTE = ["CLIENTE", "RETAIL", "STOCK", "GASTO_OPERATIVO"];
+export const TIPOS_SOLO_COMPRAS = ["CLIENTE", "RETAIL", "STOCK"];
+export const TIPO_GASTO_OPERATIVO = "GASTO_OPERATIVO";
+
+// Retail: el concepto es opcional; si se deja vacío se usa este texto.
+// En inglés para proveedores del exterior (aparece en la transferencia).
+export const CONCEPTO_RETAIL = {
+    LOCAL: "Compra de mercancía para surtir salas de venta.",
+    EXTERIOR: "Purchase of merchandise to restock our retail stores."
+};

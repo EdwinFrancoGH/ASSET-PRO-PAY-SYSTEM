@@ -1,4 +1,6 @@
-import { MONEDAS } from "../config/estados.js";
+import { MONEDAS, TIPOS_CLIENTE, TERMINOS_PAGO } from "../config/estados.js";
+import { tipoDePeticion } from "../config/bancario.js";
+import { validarCuenta } from "./catalogo.validator.js";
 
 // Campos obligatorios para ENVIAR una petición (un borrador puede
 // guardarse incompleto). Si necesitas que otro campo del layout sea
@@ -6,15 +8,14 @@ import { MONEDAS } from "../config/estados.js";
 export const CAMPOS_OBLIGATORIOS = {
     fechaSolicitud: "Fecha de solicitud",
     areaId: "Área",
+    tipoCliente: "Tipo",
     proveedorId: "Proveedor",
-    terminoPagoId: "Términos de pago",
-    montoCompra: "Monto de compra",
-    razonPago: "Razón del pago",
+    terminoPago: "Término de pago",
     porcentaje: "Porcentaje",
     monto: "Monto",
     moneda: "Moneda",
     autorizadorId: "Autoriza",
-    conceptoCompra: "Concepto de compra"
+    conceptoCompra: "Concepto/Detalle o comentario de la compra"
 };
 
 const vacio = (v) => v === undefined || v === null || (typeof v === "string" && v.trim() === "");
@@ -22,14 +23,16 @@ const vacio = (v) => v === undefined || v === null || (typeof v === "string" && 
 const fechaValida = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(new Date(v).getTime());
 
 const LIMITES_TEXTO = {
-    ordenELM: 60, ticketCompromiso: 60, proforma: 80, cliente: 150, licitacionOC: 80, proyecto: 150,
-    razonPago: 1500, conceptoCompra: 2000, nuevaCuentaBancaria: 1000, observaciones: 2000
+    ordenELM: 60, cliente: 150, licitacionOC: 150,
+    conceptoCompra: 2000, nuevaCuentaBancaria: 1000, observaciones: 2000
 };
 
 // completa = true cuando se va a enviar a autorización.
 export const validarPeticion = (datos, { completa = false } = {}) => {
     if (completa) {
+        // En Retail el concepto es opcional (se usa un texto por defecto).
         const faltantes = Object.entries(CAMPOS_OBLIGATORIOS)
+            .filter(([campo]) => !(campo === "conceptoCompra" && datos.tipoCliente === "RETAIL"))
             .filter(([campo]) => vacio(datos[campo]))
             .map(([, etiqueta]) => etiqueta);
 
@@ -38,21 +41,25 @@ export const validarPeticion = (datos, { completa = false } = {}) => {
         }
 
         if (datos.pagarCuentaDiferente) {
-            if (vacio(datos.nuevaCuentaBancaria)) return "Indica los datos de la nueva cuenta bancaria.";
+            // La cuenta nueva se captura con los mismos campos que pide la
+            // banca según el tipo (local / exterior). Las peticiones antiguas
+            // pueden traer solo el texto libre "nuevaCuentaBancaria".
+            if (datos.cuentaBancaria) {
+                const error = validarCuenta(datos.cuentaBancaria, tipoDePeticion(datos), "Nueva cuenta");
+                if (error) return error;
+            } else if (vacio(datos.nuevaCuentaBancaria)) {
+                return "Completa los datos de la nueva cuenta bancaria.";
+            }
         } else if (vacio(datos.cuentaBancariaId)) {
             return "Selecciona una cuenta registrada del proveedor o marca \"Pagar a una cuenta diferente\".";
         }
     }
 
-    for (const campo of ["fechaSolicitud", "fechaEntrega"]) {
-        if (!vacio(datos[campo]) && !fechaValida(datos[campo])) return `La fecha "${campo}" no es válida.`;
-    }
+    if (!vacio(datos.fechaSolicitud) && !fechaValida(datos.fechaSolicitud)) return "La fecha de solicitud no es válida.";
 
-    for (const campo of ["montoCompra", "monto"]) {
-        if (!vacio(datos[campo])) {
-            const n = Number(datos[campo]);
-            if (!Number.isFinite(n) || n <= 0) return `El ${campo === "monto" ? "monto" : "monto de compra"} debe ser mayor a 0.`;
-        }
+    if (!vacio(datos.monto)) {
+        const n = Number(datos.monto);
+        if (!Number.isFinite(n) || n <= 0) return "El monto debe ser mayor a 0.";
     }
 
     if (!vacio(datos.porcentaje)) {
@@ -60,8 +67,12 @@ export const validarPeticion = (datos, { completa = false } = {}) => {
         if (!Number.isFinite(p) || p <= 0 || p > 100) return "El porcentaje debe estar entre 0 y 100.";
     }
 
-    if (!vacio(datos.monto) && !vacio(datos.montoCompra) && Number(datos.monto) > Number(datos.montoCompra)) {
-        return "El monto no puede ser mayor al monto de compra.";
+    if (!vacio(datos.tipoCliente) && !TIPOS_CLIENTE.includes(datos.tipoCliente)) {
+        return `Tipo no válido. Usa: ${TIPOS_CLIENTE.join(", ")}.`;
+    }
+
+    if (!vacio(datos.terminoPago) && !TERMINOS_PAGO[datos.terminoPago]) {
+        return "Término de pago no válido. Usa Anticipo o Contado.";
     }
 
     if (!vacio(datos.moneda) && !MONEDAS.includes(datos.moneda)) {
